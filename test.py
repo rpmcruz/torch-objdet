@@ -7,8 +7,6 @@ parser.add_argument('--imgsize', type=int, default=512)
 args = parser.parse_args()
 
 import torch
-import albumentations as A
-from albumentations.pytorch import ToTensorV2
 import torchmetrics
 from time import time
 import matplotlib.pyplot as plt
@@ -20,13 +18,13 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 ################################## DATA ##################################
 
-transform = A.Compose([
-    A.Resize(args.imgsize, args.imgsize),
-    A.Normalize(0, 1),
-    ToTensorV2(),
-], A.BboxParams('pascal_voc'))
+transform = v2.Compose([
+    v2.Resize((1024, 1024)),
+    v2.RandomHorizontalFlip(),
+    v2.ToDtype(torch.float32, True),
+])
 
-ts = ds = getattr(data, args.dataset)('test', transform)
+ts = ds = data.Kitti('test', transform)
 ts = torch.utils.data.DataLoader(ts, args.batchsize, num_workers=4, pin_memory=True, collate_fn=data.detection_collate)
 
 ################################## MODEL ##################################
@@ -46,13 +44,12 @@ from torchmetrics.detection import mean_ap
 metric = mean_ap.MeanAveragePrecision().to(device)
 
 model.eval()
-for i, d in enumerate(ts):
+for i, (imgs, targets) in enumerate(ts):
     tic = time()
-    image, _, target = d
-    image = image.to(device)
-    target = [{k: v.to(device) for k, v in t.items()} for t in target]
+    imgs = imgs.to(device)
+    targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
     with torch.no_grad():
-        out, mask, uncertainty = model(image, args.threshold)
+        out = model(imgs)
     metric.update(out, target)
 
     toc = time()
