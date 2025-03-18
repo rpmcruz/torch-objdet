@@ -4,8 +4,9 @@ import numpy as np
 import os
 
 class Kitti:
-    NUM_CLASSES = 3
-    class_map = {'Car': 0, 'Van': 0, 'Cyclist': 1, 'Pedestrian': 2, 'Person_sitting': 2}
+    # in FCOS, class=0 is background
+    NUM_CLASSES = 4
+    class_map = {'Car': 1, 'Van': 1, 'Cyclist': 2, 'Pedestrian': 3, 'Person_sitting': 3}
 
     def __init__(self, root, transform=None):
         self.root = os.path.join(root, 'kitti', 'object', 'training')
